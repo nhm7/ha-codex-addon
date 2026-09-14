@@ -7,7 +7,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       adwaita-icon-theme arc-theme bash ca-certificates curl dbus-x11 \
-      fonts-dejavu-core fonts-liberation git gnupg jq locales mousepad \
+      fonts-dejavu-core fonts-liberation git gnupg locales mousepad \
       novnc papirus-icon-theme websockify x11vnc x11-xserver-utils xvfb \
       xfce4 xfce4-goodies xfce4-terminal thunar \
     && curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
@@ -30,7 +30,7 @@ RUN chmod +x /usr/local/bin/desktop-entrypoint /usr/local/bin/google-chrome \
     && update-alternatives --set x-www-browser /usr/local/bin/google-chrome
 
 ENV LANG=en_US.UTF-8
-WORKDIR /share
+WORKDIR /
 EXPOSE 8099
 ENTRYPOINT ["/usr/local/bin/desktop-entrypoint"]
 

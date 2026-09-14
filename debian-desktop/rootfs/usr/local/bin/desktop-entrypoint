@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-readonly OPTIONS_FILE=/data/options.json
 readonly RUNTIME_DIR=/run/debian-desktop
 readonly DISPLAY=:0
+readonly RESOLUTION=1440x900
 pids=()
 
 log() { printf '[debian-desktop] %s\n' "$*"; }
@@ -13,16 +13,23 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-[[ -r "${OPTIONS_FILE}" ]] || { log "Cannot read Home Assistant options at ${OPTIONS_FILE}."; exit 1; }
-
-resolution=$(jq -r '.resolution // "1440x900"' "${OPTIONS_FILE}")
-[[ "${resolution}" =~ ^[0-9]{3,4}x[0-9]{3,4}$ ]] || { log 'Invalid resolution.'; exit 1; }
-working_directory=$(jq -r '.working_directory // "/share"' "${OPTIONS_FILE}")
-[[ -d "${working_directory}" ]] || { log "${working_directory} is not a directory; using /share."; working_directory=/share; }
-
-mkdir -p "${RUNTIME_DIR}/xdg" /config/home /share /media
-chmod 700 "${RUNTIME_DIR}" "${RUNTIME_DIR}/xdg" /config/home
-export DISPLAY HOME=/config/home USER=root LOGNAME=root XDG_RUNTIME_DIR="${RUNTIME_DIR}/xdg"
+# /data is the Supervisor-managed, persistent add-on volume. Keep root's real
+# home path while putting its contents on that volume so application settings,
+# documents, and the Xfce profile survive every container restart/recreation.
+mkdir -p "${RUNTIME_DIR}/xdg" /data/home /share /media
+if [[ ! -e /data/home/.initialized ]]; then
+  # Migrate profiles made by 2.0.x, then add any image-provided root defaults
+  # without replacing files the user already owns.
+  [[ ! -d /config/home ]] || cp -a /config/home/. /data/home/
+  cp -an /root/. /data/home/
+  touch /data/home/.initialized
+fi
+if [[ ! -L /root ]]; then
+  rm -rf /root
+  ln -s /data/home /root
+fi
+chmod 700 "${RUNTIME_DIR}" "${RUNTIME_DIR}/xdg" /data/home
+export DISPLAY HOME=/root USER=root LOGNAME=root XDG_RUNTIME_DIR="${RUNTIME_DIR}/xdg"
 
 # Xfce otherwise remembers a missing browser helper in the persistent profile.
 # Point both its helper and the freedesktop MIME defaults at our container-safe
@@ -38,25 +45,10 @@ x-scheme-handler/http=google-chrome.desktop
 x-scheme-handler/https=google-chrome.desktop
 EOF
 
-while IFS= read -r entry; do
-  [[ -z "${entry}" ]] && continue
-  name=${entry%%=*}
-  value=${entry#*=}
-  if [[ "${entry}" != *=* || ! "${name}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-    log "Ignoring invalid environment entry: ${entry}"
-    continue
-  fi
-  export "${name}=${value}"
-done < <(jq -r '.environment[]? // empty' "${OPTIONS_FILE}")
+cd "${HOME}"
 
-startup_file="${RUNTIME_DIR}/startup.sh"
-jq -r '.startup_script // ""' "${OPTIONS_FILE}" > "${startup_file}"
-chmod 700 "${startup_file}"
-cd "${working_directory}"
-bash "${startup_file}"
-
-log "Starting virtual display at ${resolution}."
-Xvfb "${DISPLAY}" -screen 0 "${resolution}x24" -nolisten tcp -noreset &
+log "Starting virtual display at ${RESOLUTION}."
+Xvfb "${DISPLAY}" -screen 0 "${RESOLUTION}x24" -nolisten tcp -noreset &
 pids+=("$!")
 for _ in $(seq 1 100); do
   [[ -S /tmp/.X11-unix/X0 ]] && break

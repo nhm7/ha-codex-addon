@@ -6,9 +6,10 @@ A Debian 13 Xfce desktop available as a Home Assistant add-on and opened from
 the Home Assistant sidebar. It includes Google Chrome Stable, Thunar, a
 terminal, and Git.
 
-The desktop automatically resizes with the sidebar. Text copy and paste is
-available from noVNC's Clipboard panel, and Chrome is configured as Xfce's
-default browser through a container-compatible launcher.
+The borderless desktop automatically resizes with the sidebar. Native browser
+clipboard events provide direct text copy and paste when browser permissions
+allow it, and Chrome is configured as Xfce's default browser through a
+container-compatible launcher.
 
 > [!NOTE]
 > Home Assistant add-ons are containers rather than hardware virtual machines.
@@ -25,9 +26,9 @@ default browser through a container-compatible launcher.
 The browser connection is available only through authenticated Home Assistant
 Ingress. The add-on publishes no host port and does not run an SSH server.
 
-The desktop home persists in the add-on configuration volume. `/share` and
-`/media` are available inside the desktop. See the add-on's Configuration tab
-and [documentation](debian-desktop/DOCS.md) for its four optional settings.
+The actual `/root` home persists in the add-on data volume. `/share` and
+`/media` are available inside the desktop. The add-on has no configuration
+options; see the [documentation](debian-desktop/DOCS.md) for details.
 
 ## License
 

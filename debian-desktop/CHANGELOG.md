@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.0
+
+- Persist the real `/root` home directory on the add-on data volume.
+- Remove unnecessary desktop configuration options.
+- Replace the bordered noVNC page with a viewport-filling client.
+- Integrate browser copy and paste events with the remote clipboard.
+
 ## 2.0.1
 
 - Make Chrome the reliable Xfce default through a container-safe launcher.

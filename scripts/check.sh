@@ -13,8 +13,11 @@ grep -Fq 'google-chrome-stable' debian-desktop/Dockerfile
 grep -Fq '/usr/local/bin/google-chrome' debian-desktop/Dockerfile
 grep -Fq 'ingress: true' debian-desktop/config.yaml
 grep -Fq 'image: ghcr.io/nhm7/homeassistant-vm-debian' debian-desktop/config.yaml
-grep -Fq "\`\${base}/websockify\`" debian-desktop/rootfs/usr/share/novnc/index.html
-grep -Fq "resize: 'remote'" debian-desktop/rootfs/usr/share/novnc/index.html
+grep -Fq '${base}/websockify' debian-desktop/rootfs/usr/share/novnc/index.html
+grep -Fq 'rfb.resizeSession = true' debian-desktop/rootfs/usr/share/novnc/index.html
+grep -Fq 'navigator.clipboard.readText()' debian-desktop/rootfs/usr/share/novnc/index.html
+grep -Fq 'HOME=/root' "${entrypoint}"
+grep -Fq 'ln -s /data/home /root' "${entrypoint}"
 grep -Eq 'x11vnc .* -localhost' "${entrypoint}"
 grep -Fq -- '-xrandr resize' "${entrypoint}"
 grep -Fq 'Arc-Dark' debian-desktop/rootfs/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml

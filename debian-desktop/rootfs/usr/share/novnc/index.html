@@ -1,19 +1,64 @@
 <!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Debian Desktop</title>
-<style>html,body{background:#111827;color:#e5e7eb;font:16px system-ui;margin:0;height:100%;display:grid;place-items:center}</style>
-<p>Loading Debian desktop…</p>
-<script>
-  // Ingress mounts the app below a per-session path. Passing that prefix to
-  // noVNC keeps its WebSocket behind the same authenticated Ingress route.
-  const base = location.pathname.replace(/\/+$/, '');
-  const query = new URLSearchParams({
-    autoconnect: 'true',
-    reconnect: 'true',
-    resize: 'remote',
-    show_dot: 'true',
-    path: `${base}/websockify`,
-  });
-  location.replace(`vnc.html?${query}${location.hash}`);
-</script>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Debian Desktop</title>
+  <style>
+    html, body, #screen { background: #111827; border: 0; height: 100%; margin: 0; overflow: hidden; width: 100%; }
+    #screen { inset: 0; position: fixed; }
+    #status { color: #e5e7eb; font: 16px system-ui; left: 50%; position: fixed; top: 50%; transform: translate(-50%, -50%); }
+  </style>
+</head>
+<body>
+  <div id="screen"><span id="status">Connecting to Debian desktop…</span></div>
+  <script type="module">
+    import RFB from './core/rfb.js';
+
+    const screen = document.getElementById('screen');
+    const status = document.getElementById('status');
+    const base = location.pathname.replace(/\/+$/, '');
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    const rfb = new RFB(screen, `${protocol}://${location.host}${base}/websockify`);
+    let remoteClipboard = '';
+
+    rfb.scaleViewport = true;
+    rfb.resizeSession = true;
+    rfb.clipViewport = true;
+    rfb.focusOnClick = true;
+
+    rfb.addEventListener('connect', () => status.remove());
+    rfb.addEventListener('disconnect', event => {
+      status.textContent = event.detail.clean ? 'Desktop disconnected.' : 'Desktop connection lost. Reload to reconnect.';
+      screen.append(status);
+    });
+    rfb.addEventListener('clipboard', event => {
+      remoteClipboard = event.detail.text;
+      navigator.clipboard?.writeText(remoteClipboard).catch(() => {});
+    });
+
+    // Clipboard events provide a synchronous fallback, while the Clipboard API
+    // makes Ctrl+V work directly when the browser grants Ingress permission.
+    document.addEventListener('paste', event => {
+      const text = event.clipboardData?.getData('text/plain');
+      if (text !== undefined) {
+        event.preventDefault();
+        rfb.clipboardPasteFrom(text);
+      }
+    }, true);
+    document.addEventListener('copy', event => {
+      if (remoteClipboard && event.clipboardData) {
+        event.clipboardData.setData('text/plain', remoteClipboard);
+        event.preventDefault();
+      }
+    }, true);
+    document.addEventListener('keydown', event => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v' && navigator.clipboard) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        navigator.clipboard.readText().then(text => rfb.clipboardPasteFrom(text)).catch(() => {});
+      }
+    }, true);
+  </script>
+</body>
+</html>
