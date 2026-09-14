@@ -1,0 +1,37 @@
+name: Codex Desktop
+version: "0.2.2"
+slug: codex_desktop
+description: Community Linux desktop with Codex CLI, available securely through Home Assistant Ingress
+url: https://github.com/nhm7/ha-codex-addon
+arch:
+  - amd64
+startup: application
+boot: auto
+init: false
+ingress: true
+ingress_port: 7681
+panel_icon: mdi:monitor-dashboard
+panel_title: Codex Desktop
+homeassistant_api: false
+hassio_api: false
+auth_api: false
+host_network: false
+apparmor: true
+map:
+  - addon_config:rw
+  - share:rw
+  - media:rw
+options:
+  environment: []
+  startup_script: ""
+  working_directory: /share
+  codex_arguments: []
+  resolution: 1440x900
+schema:
+  environment:
+    - str
+  startup_script: str
+  working_directory: str
+  codex_arguments:
+    - str
+  resolution: match(^[0-9]{3,4}x[0-9]{3,4}$)
