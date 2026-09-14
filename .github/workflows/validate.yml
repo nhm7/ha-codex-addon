@@ -21,7 +21,10 @@ jobs:
       - name: Run repository checks
         run: ./scripts/check.sh
       - name: Lint shell scripts
-        run: shellcheck scripts/check.sh debian-desktop/rootfs/usr/local/bin/desktop-entrypoint
+        run: >-
+          shellcheck scripts/check.sh
+          debian-desktop/rootfs/usr/local/bin/desktop-entrypoint
+          debian-desktop/rootfs/usr/local/bin/google-chrome
       - name: Lint Home Assistant add-on
         uses: frenck/action-addon-linter@v2.21
         with:

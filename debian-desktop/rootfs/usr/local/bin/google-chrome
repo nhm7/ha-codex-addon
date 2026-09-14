@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Home Assistant apps run as root and have a small shared-memory mount. Chrome's
+# normal launcher cannot use its setuid sandbox in that environment, and then
+# reports an unhelpful I/O error through Xfce. Keep these container-specific
+# flags in one wrapper used by desktop files and the default-browser command.
+exec /usr/bin/google-chrome-stable \
+  --no-sandbox \
+  --disable-dev-shm-usage \
+  --password-store=basic \
+  "$@"

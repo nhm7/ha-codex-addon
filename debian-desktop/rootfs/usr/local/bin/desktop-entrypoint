@@ -24,6 +24,20 @@ mkdir -p "${RUNTIME_DIR}/xdg" /config/home /share /media
 chmod 700 "${RUNTIME_DIR}" "${RUNTIME_DIR}/xdg" /config/home
 export DISPLAY HOME=/config/home USER=root LOGNAME=root XDG_RUNTIME_DIR="${RUNTIME_DIR}/xdg"
 
+# Xfce otherwise remembers a missing browser helper in the persistent profile.
+# Point both its helper and the freedesktop MIME defaults at our container-safe
+# Chrome launcher on every start, including for profiles created by old builds.
+mkdir -p "${HOME}/.config/xfce4" "${HOME}/.config"
+cat > "${HOME}/.config/xfce4/helpers.rc" <<'EOF'
+WebBrowser=google-chrome
+EOF
+cat > "${HOME}/.config/mimeapps.list" <<'EOF'
+[Default Applications]
+text/html=google-chrome.desktop
+x-scheme-handler/http=google-chrome.desktop
+x-scheme-handler/https=google-chrome.desktop
+EOF
+
 while IFS= read -r entry; do
   [[ -z "${entry}" ]] && continue
   name=${entry%%=*}
@@ -56,7 +70,8 @@ startxfce4 &
 pids+=("$!")
 
 log 'Starting loopback-only VNC and Home Assistant Ingress gateway.'
-x11vnc -display "${DISPLAY}" -localhost -rfbport 5900 -forever -shared -nopw -noxdamage &
+x11vnc -display "${DISPLAY}" -localhost -rfbport 5900 -forever -shared -nopw \
+  -noxdamage -xrandr resize &
 pids+=("$!")
 websockify --web=/usr/share/novnc 0.0.0.0:8099 localhost:5900 &
 gateway_pid=$!

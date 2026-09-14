@@ -11,7 +11,8 @@
   const query = new URLSearchParams({
     autoconnect: 'true',
     reconnect: 'true',
-    resize: 'scale',
+    resize: 'remote',
+    show_dot: 'true',
     path: `${base}/websockify`,
   });
   location.replace(`vnc.html?${query}${location.hash}`);

@@ -5,14 +5,19 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 entrypoint=debian-desktop/rootfs/usr/local/bin/desktop-entrypoint
 
 bash -n "${entrypoint}"
+bash -n debian-desktop/rootfs/usr/local/bin/google-chrome
 ruby -e 'require "yaml"; %w[repository.yaml debian-desktop/config.yaml debian-desktop/build.yaml .github/workflows/validate.yml].each { |file| YAML.safe_load_file(file, aliases: true) }'
 
 grep -Fq 'amd64: debian:13-slim' debian-desktop/build.yaml
 grep -Fq 'google-chrome-stable' debian-desktop/Dockerfile
+grep -Fq '/usr/local/bin/google-chrome' debian-desktop/Dockerfile
 grep -Fq 'ingress: true' debian-desktop/config.yaml
 grep -Fq 'image: ghcr.io/nhm7/homeassistant-vm-debian' debian-desktop/config.yaml
 grep -Fq "\`\${base}/websockify\`" debian-desktop/rootfs/usr/share/novnc/index.html
+grep -Fq "resize: 'remote'" debian-desktop/rootfs/usr/share/novnc/index.html
 grep -Eq 'x11vnc .* -localhost' "${entrypoint}"
+grep -Fq -- '-xrandr resize' "${entrypoint}"
+grep -Fq 'Arc-Dark' debian-desktop/rootfs/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
 
 if grep -Eq '^(ports|network|webui|host_dbus|docker_api):' debian-desktop/config.yaml; then
   echo 'The add-on must not expose a host service or privileged host API.' >&2
