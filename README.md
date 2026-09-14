@@ -21,6 +21,26 @@ will refuse to start unless `PASSWORD` is set.
 Railway terminates HTTPS at its edge. Both the noVNC page and its WebSocket are
 served through the same authenticated endpoint.
 
+### Prebuilt image
+
+The GitHub Actions pipeline builds the image on every pull request. Pushes to
+the repository's default branch also publish these images:
+
+```text
+ghcr.io/nhm7/homeassistant-vm:latest
+ghcr.io/nhm7/homeassistant-vm:<commit-sha>
+```
+
+Railway can deploy the prebuilt `latest` image instead of building this
+repository. Configure the same variables, public port, health-check path, and
+`/config` volume described above. GitHub Container Registry packages are
+private by default unless their package visibility is changed to public.
+
+The published container is a standard OCI image. Home Assistant Container or
+Home Assistant OS does not automatically turn it into a Supervisor add-on; the
+old add-on manifests were intentionally removed as part of the Railway-only
+conversion.
+
 ## Configuration
 
 | Variable | Required | Default | Description |

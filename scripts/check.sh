@@ -4,10 +4,12 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 bash -n rootfs/usr/local/bin/desktop-entrypoint
 python3 -m json.tool railway.json >/dev/null
+ruby -e 'require "yaml"; YAML.load_file(".github/workflows/validate.yml")'
 
 grep -Fq 'FROM debian:12-slim' Dockerfile
 grep -Fq 'google-chrome-stable' Dockerfile
 grep -Fq 'healthcheckPath": "/healthz"' railway.json
+grep -Fq "ghcr.io/\${{ github.repository }}:latest" .github/workflows/validate.yml
 grep -Fq "PASSWORD must be set" rootfs/usr/local/bin/desktop-entrypoint
 grep -Eq 'x11vnc .* -localhost' rootfs/usr/local/bin/desktop-entrypoint
 
