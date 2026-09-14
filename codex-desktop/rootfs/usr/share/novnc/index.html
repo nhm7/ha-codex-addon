@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Codex Desktop</title>
+<style>html,body{background:#111827;color:#e5e7eb;font:16px system-ui;margin:0;height:100%;display:grid;place-items:center}</style>
+<p>Codex Desktop wird geladen …</p>
+<script>
+  const base = location.pathname.replace(/[^/]*$/, '');
+  const query = new URLSearchParams({autoconnect: 'true', resize: 'scale', path: `${base.replace(/^\//, '')}websockify`});
+  location.replace(`vnc.html?${query}${location.hash}`);
+</script>
