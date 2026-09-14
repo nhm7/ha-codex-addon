@@ -1,7 +1,0 @@
-build_from:
-  amd64: ghcr.io/home-assistant/amd64-base:3.22
-labels:
-  org.opencontainers.image.title: Codex Desktop Community Add-on
-  org.opencontainers.image.description: Browser-accessible Linux desktop with Codex CLI for Home Assistant
-  org.opencontainers.image.source: https://github.com/OWNER/ha-codex-addon
-  org.opencontainers.image.licenses: MIT

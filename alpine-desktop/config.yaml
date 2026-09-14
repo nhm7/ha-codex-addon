@@ -1,0 +1,35 @@
+name: Alpine Desktop
+version: "1.0.0"
+slug: alpine_desktop
+description: Lightweight Alpine Linux workspace with Openbox, privately available through Home Assistant Ingress
+url: https://github.com/nhm7/homeassistant-vm
+arch:
+  - amd64
+  - aarch64
+startup: application
+boot: manual
+init: false
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:monitor-dashboard
+panel_title: Alpine Desktop
+homeassistant_api: false
+hassio_api: false
+auth_api: false
+host_network: false
+apparmor: true
+map:
+  - addon_config:rw
+  - share:rw
+  - media:rw
+options:
+  environment: []
+  startup_script: ""
+  working_directory: /share
+  resolution: 1440x900
+schema:
+  environment:
+    - str
+  startup_script: str
+  working_directory: str
+  resolution: match(^[0-9]{3,4}x[0-9]{3,4}$)
