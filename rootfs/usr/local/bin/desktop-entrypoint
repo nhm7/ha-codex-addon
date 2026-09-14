@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly DISPLAY=:0
+readonly RUNTIME_DIR=/run/debian-desktop
+pids=()
+
+log() { printf '[debian-desktop] %s\n' "$*"; }
+cleanup() {
+  log 'Stopping desktop services...'
+  ((${#pids[@]} == 0)) || kill "${pids[@]}" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
+if [[ -z "${PASSWORD:-}" ]]; then
+  log 'PASSWORD must be set; refusing to expose an unauthenticated desktop.'
+  exit 1
+fi
+
+username=${USERNAME:-admin}
+if [[ ! "${username}" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+  log 'USERNAME may contain only letters, numbers, underscores, periods, and hyphens.'
+  exit 1
+fi
+
+port=${PORT:-8080}
+[[ "${port}" =~ ^[0-9]+$ ]] || { log 'PORT must be numeric.'; exit 1; }
+resolution=${RESOLUTION:-1440x900}
+if [[ ! "${resolution}" =~ ^[0-9]{3,4}x[0-9]{3,4}$ ]]; then
+  log 'RESOLUTION must use the WIDTHxHEIGHT format.'
+  exit 1
+fi
+
+mkdir -p "${RUNTIME_DIR}/xdg" /config/home
+chmod 700 "${RUNTIME_DIR}" "${RUNTIME_DIR}/xdg" /config/home
+export DISPLAY HOME=/config/home USER=root LOGNAME=root XDG_RUNTIME_DIR="${RUNTIME_DIR}/xdg"
+
+printf '%s\n' "${PASSWORD}" | htpasswd -iBc "${RUNTIME_DIR}/htpasswd" "${username}" >/dev/null
+cat > "${RUNTIME_DIR}/nginx.conf" <<EOF
+daemon off;
+pid ${RUNTIME_DIR}/nginx.pid;
+error_log /dev/stderr info;
+events {}
+http {
+  access_log /dev/stdout;
+  map \$http_upgrade \$connection_upgrade { default upgrade; '' close; }
+  server {
+    listen ${port};
+    location = /healthz { auth_basic off; return 200 'ok\n'; add_header Content-Type text/plain; }
+    location / {
+      auth_basic "Debian Desktop";
+      auth_basic_user_file ${RUNTIME_DIR}/htpasswd;
+      proxy_pass http://127.0.0.1:6080;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade \$http_upgrade;
+      proxy_set_header Connection \$connection_upgrade;
+      proxy_set_header Host \$host;
+      proxy_read_timeout 86400;
+    }
+  }
+}
+EOF
+
+log "Starting virtual display at ${resolution}..."
+Xvfb "${DISPLAY}" -screen 0 "${resolution}x24" -nolisten tcp -noreset &
+pids+=("$!")
+for _ in $(seq 1 100); do
+  [[ -S /tmp/.X11-unix/X0 ]] && break
+  sleep 0.1
+done
+[[ -S /tmp/.X11-unix/X0 ]] || { log 'Virtual display failed to start.'; exit 1; }
+
+eval "$(dbus-launch --sh-syntax)"
+log 'Starting Debian Xfce desktop...'
+startxfce4 &
+pids+=("$!")
+
+log 'Starting loopback-only VNC service...'
+x11vnc -display "${DISPLAY}" -localhost -rfbport 5900 -forever -shared -nopw -noxdamage &
+pids+=("$!")
+websockify --web=/usr/share/novnc 127.0.0.1:6080 localhost:5900 &
+pids+=("$!")
+
+log "Starting authenticated web gateway on port ${port}..."
+nginx -c "${RUNTIME_DIR}/nginx.conf" -p "${RUNTIME_DIR}" &
+gateway_pid=$!
+pids+=("${gateway_pid}")
+wait "${gateway_pid}"

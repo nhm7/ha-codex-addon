@@ -2,48 +2,19 @@
 set -Eeuo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-addons=(ubuntu-desktop debian-desktop alpine-desktop)
-for addon in "${addons[@]}"; do
-  bash -n "${addon}/rootfs/usr/local/bin/desktop-entrypoint"
-  cmp scripts/desktop-entrypoint.sh "${addon}/rootfs/usr/local/bin/desktop-entrypoint"
-  cmp scripts/index.html "${addon}/rootfs/usr/share/novnc/index.html"
+bash -n rootfs/usr/local/bin/desktop-entrypoint
+python3 -m json.tool railway.json >/dev/null
+ruby -e 'require "yaml"; YAML.load_file(".github/workflows/validate.yml")'
 
-  for key in name version slug description arch ingress ingress_port panel_icon options schema; do
-    grep -Eq "^${key}:" "${addon}/config.yaml"
-  done
-  grep -Eq '^ingress: true$' "${addon}/config.yaml"
-  grep -Eq '^ingress_port: 8099$' "${addon}/config.yaml"
-  grep -Eq '^host_network: false$' "${addon}/config.yaml"
-  grep -Eq '^apparmor: true$' "${addon}/config.yaml"
-  grep -Eq '^homeassistant_api: false$' "${addon}/config.yaml"
-  grep -Eq '^hassio_api: false$' "${addon}/config.yaml"
-  grep -Eq '^auth_api: false$' "${addon}/config.yaml"
-  grep -Eq 'x11vnc .* -localhost' "${addon}/rootfs/usr/local/bin/desktop-entrypoint"
-  if grep -Eqi 'openssh-server|[^-]sshd' "${addon}/Dockerfile"; then
-    echo "${addon} must not install an SSH server." >&2
-    exit 1
-  fi
-  if grep -Eq '^ports:' "${addon}/config.yaml"; then
-    echo "${addon} must not publish host ports." >&2
-    exit 1
-  fi
+grep -Fq 'FROM debian:12-slim' Dockerfile
+grep -Fq 'google-chrome-stable' Dockerfile
+grep -Fq 'healthcheckPath": "/healthz"' railway.json
+grep -Fq "ghcr.io/\${{ github.repository }}:latest" .github/workflows/validate.yml
+grep -Fq "PASSWORD must be set" rootfs/usr/local/bin/desktop-entrypoint
+grep -Eq 'x11vnc .* -localhost' rootfs/usr/local/bin/desktop-entrypoint
 
-  config_version=$(sed -n 's/^version: "\([^"]*\)"$/\1/p' "${addon}/config.yaml")
-  grep -Fq "io.hass.version=\"${config_version}\"" "${addon}/Dockerfile"
-  grep -Fq 'org.opencontainers.image.source="https://github.com/nhm7/homeassistant-vm"' \
-    "${addon}/Dockerfile"
-done
-
-legacy_pattern='co''dex|open''ai'
-mapfile -t legacy_files < <(
-  find . -type f \
-    -not -path './.git/*' \
-    -not -path './LICENSE' \
-    -exec grep -Eil "${legacy_pattern}" {} +
-)
-if ((${#legacy_files[@]} > 0)); then
-  printf '%s\n' "${legacy_files[@]}"
-  echo 'Legacy product-specific references remain.' >&2
+if find . -maxdepth 1 -type d \( -name 'ubuntu-*' -o -name 'fedora-*' -o -name 'alpine-*' \) | grep -q .; then
+  echo 'Only the Debian desktop may be included.' >&2
   exit 1
 fi
 
