@@ -13,6 +13,9 @@ grep -Fq 'google-chrome-stable' debian-desktop/Dockerfile
 grep -Fq '/usr/local/bin/google-chrome' debian-desktop/Dockerfile
 grep -Fq 'ingress: true' debian-desktop/config.yaml
 grep -Fq 'image: ghcr.io/nhm7/homeassistant-vm-debian' debian-desktop/config.yaml
+grep -Fq 'https://github.com/nhm7/homeassistant-desktop-vm' repository.yaml
+grep -Fq 'supervisor_add_addon_repository.svg' README.md
+grep -Fq 'repository_url=https%3A%2F%2Fgithub.com%2Fnhm7%2Fhomeassistant-desktop-vm' README.md
 grep -Fq "\${base}/websockify" debian-desktop/rootfs/usr/share/novnc/index.html
 grep -Fq 'rfb.resizeSession = true' debian-desktop/rootfs/usr/share/novnc/index.html
 grep -Fq 'navigator.clipboard.readText()' debian-desktop/rootfs/usr/share/novnc/index.html
@@ -24,6 +27,11 @@ grep -Fq 'Arc-Dark' debian-desktop/rootfs/etc/xdg/xfce4/xfconf/xfce-perchannel-x
 
 if grep -Eq '^(ports|network|webui|host_dbus|docker_api):' debian-desktop/config.yaml; then
   echo 'The add-on must not expose a host service or privileged host API.' >&2
+  exit 1
+fi
+
+if grep -Eq '^(options|schema):' debian-desktop/config.yaml; then
+  echo 'Empty options and schema must be omitted for the add-on linter.' >&2
   exit 1
 fi
 

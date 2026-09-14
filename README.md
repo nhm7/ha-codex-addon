@@ -1,6 +1,6 @@
 # Debian Desktop for Home Assistant
 
-[![Open your Home Assistant instance and add this repository](https://my.home-assistant.io/badges/supervisor_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fnhm7%2Fhomeassistant-vm)
+[![Open your Home Assistant instance and add this repository](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fnhm7%2Fhomeassistant-desktop-vm)
 
 A Debian 13 Xfce desktop available as a Home Assistant add-on and opened from
 the Home Assistant sidebar. It includes Google Chrome Stable, Thunar, a
@@ -18,7 +18,8 @@ container-compatible launcher.
 ## Install
 
 1. Use the badge above, or open **Settings → Add-ons → Add-on store** in Home
-   Assistant and add `https://github.com/nhm7/homeassistant-vm` as a repository.
+   Assistant and add `https://github.com/nhm7/homeassistant-desktop-vm` as a
+   repository.
 2. Install **Debian Desktop**.
 3. Start the add-on and enable **Show in sidebar**.
 4. Open **Debian Desktop** from the sidebar.
