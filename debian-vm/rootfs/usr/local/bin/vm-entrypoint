@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+readonly DISK=/data/debian.qcow2
+readonly SEED=/data/cloud-init.iso
+readonly MONITOR=/run/debian-vm-monitor.sock
+readonly BASE_IMAGE=/usr/share/debian-vm/debian-13-generic-amd64.qcow2
+readonly ACCEL=${QEMU_ACCEL:-tcg}
+qemu_pid=''
+websockify_pid=''
+
+log() { printf '[debian-vm] %s\n' "$*"; }
+cleanup() {
+  trap - EXIT INT TERM
+  if [[ -n "${qemu_pid}" ]] && kill -0 "${qemu_pid}" 2>/dev/null; then
+    log 'Requesting a clean guest shutdown.'
+    printf 'system_powerdown\n' | socat - "UNIX-CONNECT:${MONITOR}" 2>/dev/null || true
+    for _ in $(seq 1 30); do
+      kill -0 "${qemu_pid}" 2>/dev/null || break
+      sleep 1
+    done
+    kill "${qemu_pid}" 2>/dev/null || true
+    wait "${qemu_pid}" 2>/dev/null || true
+  fi
+  [[ -z "${websockify_pid}" ]] || kill "${websockify_pid}" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
+mkdir -p /data /run
+if [[ ! -f "${DISK}" ]]; then
+  log 'Creating the persistent Debian disk (32 GiB maximum, dynamically allocated).'
+  qemu-img convert -p -f qcow2 -O qcow2 "${BASE_IMAGE}" "${DISK}.new"
+  qemu-img resize "${DISK}.new" 32G
+  mv "${DISK}.new" "${DISK}"
+fi
+
+if [[ ! -f "${SEED}" ]]; then
+  log 'Creating first-boot configuration.'
+  seed_dir=$(mktemp -d)
+  cat > "${seed_dir}/meta-data" <<'META'
+instance-id: home-assistant-debian-vm
+local-hostname: debian-vm
+META
+  cat > "${seed_dir}/user-data" <<'USERDATA'
+#cloud-config
+preserve_hostname: false
+hostname: debian-vm
+users:
+  - name: debian
+    groups: [adm, audio, cdrom, dip, floppy, netdev, plugdev, sudo, video]
+    shell: /bin/bash
+    lock_passwd: false
+    passwd: $6$HAdebian$KAX6VbM3GuQM3.SvynDdNjrklg.xsB99p5jfYvmf//VRg8B78IwfMM6lqzlaDI2dctE4rgd/WzBPbePb./m5u.
+ssh_pwauth: false
+package_update: true
+package_upgrade: false
+packages:
+  - chromium
+  - dbus-x11
+  - qemu-guest-agent
+  - task-xfce-desktop
+write_files:
+  - path: /etc/lightdm/lightdm.conf.d/50-autologin.conf
+    content: |
+      [Seat:*]
+      autologin-user=debian
+      autologin-user-timeout=0
+  - path: /etc/default/keyboard
+    content: |
+      XKBMODEL="pc105"
+      XKBLAYOUT="us"
+runcmd:
+  - [systemctl, enable, lightdm]
+  - [systemctl, set-default, graphical.target]
+  - [systemctl, restart, lightdm]
+final_message: "Debian desktop installation complete."
+USERDATA
+  genisoimage -quiet -output "${SEED}" -volid cidata -joliet -rock \
+    "${seed_dir}/user-data" "${seed_dir}/meta-data"
+  rm -rf "${seed_dir}"
+fi
+
+case "${ACCEL}" in
+  kvm)
+    [[ -c /dev/kvm ]] || { log 'ERROR: /dev/kvm is unavailable. Install the software-emulated add-on instead, or expose KVM and disable protection mode.'; exit 1; }
+    accel_args=(-accel kvm -cpu host)
+    ;;
+  tcg) accel_args=(-accel "tcg,thread=multi" -cpu max) ;;
+  *) log "ERROR: Unsupported accelerator: ${ACCEL}"; exit 1 ;;
+esac
+
+rm -f "${MONITOR}"
+log "Starting Debian with ${ACCEL} acceleration. First boot installs Xfce and can take several minutes."
+qemu-system-x86_64 \
+  "${accel_args[@]}" \
+  -machine q35 -smp 2 -m 4096 \
+  -drive "file=${DISK},if=virtio,format=qcow2,cache=writeback" \
+  -drive "file=${SEED},if=virtio,format=raw,readonly=on" \
+  -device virtio-vga -display none -vnc 127.0.0.1:0 \
+  -device virtio-net-pci,netdev=net0 -netdev user,id=net0 \
+  -device virtio-rng-pci -device qemu-xhci -device usb-tablet \
+  -monitor "unix:${MONITOR},server=on,wait=off" \
+  -no-reboot &
+qemu_pid=$!
+
+for _ in $(seq 1 100); do
+  [[ -S "${MONITOR}" ]] && break
+  kill -0 "${qemu_pid}" 2>/dev/null || { wait "${qemu_pid}"; exit $?; }
+  sleep 0.1
+done
+[[ -S "${MONITOR}" ]] || { log 'QEMU failed to create its monitor socket.'; exit 1; }
+
+log 'Starting the Home Assistant Ingress gateway.'
+websockify --web=/usr/share/novnc 0.0.0.0:8099 localhost:5900 &
+websockify_pid=$!
+wait -n "${qemu_pid}" "${websockify_pid}"

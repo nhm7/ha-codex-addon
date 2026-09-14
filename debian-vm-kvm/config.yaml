@@ -1,0 +1,15 @@
+name: Debian VM (KVM)
+version: "3.0.0"
+slug: debian_vm_kvm
+description: Debian 13 Xfce VM with a fully persistent disk and KVM acceleration
+url: https://github.com/nhm7/homeassistant-desktop-vm/tree/main/debian-vm-kvm
+arch:
+  - amd64
+boot: manual
+init: false
+ingress: true
+panel_icon: mdi:monitor-dashboard
+panel_title: Debian VM (KVM)
+devices:
+  - /dev/kvm
+image: ghcr.io/nhm7/homeassistant-vm-debian-kvm
