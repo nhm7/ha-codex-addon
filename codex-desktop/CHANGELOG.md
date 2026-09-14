@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Fix image builds on Alpine 3.22 by installing websockify from PyPI instead of
+  requesting the unavailable `py3-websockify` APK package.
+- Move the amd64 base image and OCI labels into the Dockerfile because
+  `build.yaml` is deprecated by Home Assistant Supervisor.
+- Replace placeholder project URLs with the real repository URL.
+
 ## 0.2.0
 
 - Replace the terminal-only UI with an Openbox Linux desktop through noVNC.

@@ -19,6 +19,10 @@ grep -Eq '^  - amd64$' codex-desktop/config.yaml
 test "$(grep -Ec '^  - (aarch64|armv7)$' codex-desktop/config.yaml)" -eq 0
 grep -q 'x11vnc.*-localhost' codex-desktop/rootfs/usr/local/bin/codex-desktop
 ! grep -Eq 'openssh-server|sshd' codex-desktop/Dockerfile
+! grep -q 'py3-websockify' codex-desktop/Dockerfile
+grep -q 'websockify==0.13.0' codex-desktop/Dockerfile
+grep -q '^FROM ghcr.io/home-assistant/amd64-base:3.22$' codex-desktop/Dockerfile
+test ! -e codex-desktop/build.yaml
 
 # Keep the repository text-only. Home Assistant falls back to its standard
 # add-on artwork when icon.png and logo.png are not present.
