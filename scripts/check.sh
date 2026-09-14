@@ -14,13 +14,35 @@ for addon in "${addons[@]}"; do
   grep -Eq '^ingress: true$' "${addon}/config.yaml"
   grep -Eq '^ingress_port: 8099$' "${addon}/config.yaml"
   grep -Eq '^host_network: false$' "${addon}/config.yaml"
+  grep -Eq '^apparmor: true$' "${addon}/config.yaml"
+  grep -Eq '^homeassistant_api: false$' "${addon}/config.yaml"
+  grep -Eq '^hassio_api: false$' "${addon}/config.yaml"
+  grep -Eq '^auth_api: false$' "${addon}/config.yaml"
   grep -Eq 'x11vnc .* -localhost' "${addon}/rootfs/usr/local/bin/desktop-entrypoint"
-  ! grep -Eqi 'openssh-server|[^-]sshd' "${addon}/Dockerfile"
-  ! grep -Eq '^ports:' "${addon}/config.yaml"
+  if grep -Eqi 'openssh-server|[^-]sshd' "${addon}/Dockerfile"; then
+    echo "${addon} must not install an SSH server." >&2
+    exit 1
+  fi
+  if grep -Eq '^ports:' "${addon}/config.yaml"; then
+    echo "${addon} must not publish host ports." >&2
+    exit 1
+  fi
+
+  config_version=$(sed -n 's/^version: "\([^"]*\)"$/\1/p' "${addon}/config.yaml")
+  grep -Fq "io.hass.version=\"${config_version}\"" "${addon}/Dockerfile"
+  grep -Fq 'org.opencontainers.image.source="https://github.com/nhm7/homeassistant-vm"' \
+    "${addon}/Dockerfile"
 done
 
 legacy_pattern='co''dex|open''ai'
-if rg -i "${legacy_pattern}" --glob '!LICENSE' --glob '!.git/**' .; then
+mapfile -t legacy_files < <(
+  find . -type f \
+    -not -path './.git/*' \
+    -not -path './LICENSE' \
+    -exec grep -Eil "${legacy_pattern}" {} +
+)
+if ((${#legacy_files[@]} > 0)); then
+  printf '%s\n' "${legacy_files[@]}"
   echo 'Legacy product-specific references remain.' >&2
   exit 1
 fi
