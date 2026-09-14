@@ -36,9 +36,11 @@ See each add-on's `DOCS.md` for configuration and security details.
 ./scripts/check.sh
 ```
 
-The GitHub Actions workflow validates metadata and shell scripts, scans the
-images with Hadolint, and builds every add-on for `amd64` on pull requests and
-pushes.
+The GitHub Actions workflow validates metadata, privacy-sensitive settings, and
+shell scripts; lints YAML and every Dockerfile; and builds every add-on for
+`amd64` on pull requests and pushes. The published add-on metadata also declares
+`aarch64` support because every selected base image and package set is available
+for that architecture.
 
 ## License
 
