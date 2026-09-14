@@ -1,13 +1,13 @@
-FROM debian:12-slim
+ARG BUILD_FROM=debian:13-slim
+FROM ${BUILD_FROM}
 
 ARG DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-      apache2-utils bash ca-certificates curl dbus-x11 fonts-dejavu-core git \
-      gnupg locales nginx novnc websockify x11vnc xvfb xfce4 xfce4-terminal \
-      thunar \
+      bash ca-certificates curl dbus-x11 fonts-dejavu-core git gnupg jq locales \
+      novnc websockify x11vnc xvfb xfce4 xfce4-terminal thunar \
     && curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
       | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
     && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
@@ -21,18 +21,15 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY rootfs/ /
+COPY rootfs /
 RUN chmod +x /usr/local/bin/desktop-entrypoint
 
-ENV LANG=en_US.UTF-8 \
-    USERNAME=admin \
-    RESOLUTION=1440x900 \
-    PORT=8080
-
-VOLUME ["/config"]
-EXPOSE 8080
+ENV LANG=en_US.UTF-8
+WORKDIR /share
+EXPOSE 8099
 ENTRYPOINT ["/usr/local/bin/desktop-entrypoint"]
 
-LABEL org.opencontainers.image.source="https://github.com/nhm7/homeassistant-vm" \
+LABEL io.hass.type="addon" \
+      org.opencontainers.image.source="https://github.com/nhm7/homeassistant-vm" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.description="Password-protected Debian Xfce desktop for Railway"
+      org.opencontainers.image.description="Debian Xfce desktop for Home Assistant Ingress"
