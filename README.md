@@ -1,82 +1,29 @@
-# Debian Desktop for Railway
+# Debian Desktop for Home Assistant
 
-A persistent Debian 12 Xfce desktop that runs on [Railway](https://railway.com)
-and is available from any modern browser. The image includes Google Chrome,
-Thunar, a terminal, Git, and an HTTPS-ready noVNC client.
+[![Open your Home Assistant instance and add this repository](https://my.home-assistant.io/badges/supervisor_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fnhm7%2Fhomeassistant-vm)
 
-The public desktop is protected with HTTP Basic Authentication. The container
-will refuse to start unless `PASSWORD` is set.
+A Debian 13 Xfce desktop available as a Home Assistant add-on and opened from
+the Home Assistant sidebar. It includes Google Chrome Stable, Thunar, a
+terminal, and Git.
 
-## Deploy on Railway
+> [!NOTE]
+> Home Assistant add-ons are containers rather than hardware virtual machines.
+> This provides a complete Debian userspace while sharing the host kernel.
 
-1. Create a Railway project from this GitHub repository.
-2. Add a volume mounted at `/config` so browser profiles, desktop settings, and
-   files in the home directory survive redeploys.
-3. Set a secret `PASSWORD` variable. Optionally set `USERNAME` (the default is
-   `admin`) and `RESOLUTION` (the default is `1440x900`).
-4. Generate a public domain for the service. Railway detects the root
-   `Dockerfile`, uses the injected `PORT`, and checks `/healthz` automatically.
-5. Open the generated domain and sign in with the configured credentials.
+## Install
 
-Railway terminates HTTPS at its edge. Both the noVNC page and its WebSocket are
-served through the same authenticated endpoint.
+1. Use the badge above, or open **Settings → Add-ons → Add-on store** in Home
+   Assistant and add `https://github.com/nhm7/homeassistant-vm` as a repository.
+2. Install **Debian Desktop**.
+3. Start the add-on and enable **Show in sidebar**.
+4. Open **Debian Desktop** from the sidebar.
 
-### Prebuilt image
+The browser connection is available only through authenticated Home Assistant
+Ingress. The add-on publishes no host port and does not run an SSH server.
 
-The GitHub Actions pipeline builds the image on every pull request. Pushes to
-the repository's default branch also publish these images:
-
-```text
-ghcr.io/nhm7/homeassistant-vm:latest
-ghcr.io/nhm7/homeassistant-vm:<commit-sha>
-```
-
-Railway can deploy the prebuilt `latest` image instead of building this
-repository. Configure the same variables, public port, health-check path, and
-`/config` volume described above. GitHub Container Registry packages are
-private by default unless their package visibility is changed to public.
-
-The published container is a standard OCI image. Home Assistant Container or
-Home Assistant OS does not automatically turn it into a Supervisor add-on; the
-old add-on manifests were intentionally removed as part of the Railway-only
-conversion.
-
-## Configuration
-
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `PASSWORD` | Yes | — | Password protecting the entire browser desktop. |
-| `USERNAME` | No | `admin` | HTTP Basic Authentication username. |
-| `RESOLUTION` | No | `1440x900` | Virtual screen size, formatted as `WIDTHxHEIGHT`. |
-| `PORT` | Railway | `8080` | HTTP port; Railway supplies this automatically. |
-
-The persistent home directory is `/config/home`. Software installed while the
-container is running is ephemeral; bake additional packages into the
-`Dockerfile` if they must survive a redeploy.
-
-> [!IMPORTANT]
-> This is a containerized desktop, not a hardware virtual machine. It shares the
-> host kernel, and Chrome runs with its sandbox disabled because the graphical
-> session runs as the container's root user. Do not use it for untrusted sites
-> or workloads requiring VM-level isolation.
-
-## Local development
-
-```sh
-docker build -t debian-desktop .
-docker run --rm -p 8080:8080 \
-  -e PASSWORD='replace-with-a-strong-password' \
-  -v debian-desktop-data:/config \
-  debian-desktop
-```
-
-Then visit <http://localhost:8080> and sign in as `admin`.
-
-Run the repository checks with:
-
-```sh
-./scripts/check.sh
-```
+The desktop home persists in the add-on configuration volume. `/share` and
+`/media` are available inside the desktop. See the add-on's Configuration tab
+and [documentation](debian-desktop/DOCS.md) for its four optional settings.
 
 ## License
 

@@ -1,8 +1,12 @@
-name: Validate Debian desktop
+name: Validate Debian Desktop add-on
 
 on:
   push:
+    branches:
+      - main
   pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -13,36 +17,42 @@ jobs:
     name: Validate source
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Run repository checks
         run: ./scripts/check.sh
       - name: Lint shell scripts
-        run: shellcheck scripts/check.sh rootfs/usr/local/bin/desktop-entrypoint
+        run: shellcheck scripts/check.sh debian-desktop/rootfs/usr/local/bin/desktop-entrypoint
+      - name: Lint Home Assistant add-on
+        uses: frenck/action-addon-linter@v2.21
+        with:
+          path: ./debian-desktop
 
   build:
-    name: Build and publish Debian desktop
+    name: Build amd64 add-on image
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
       packages: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Log in to GitHub Container Registry
-        if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v7.0.1
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and optionally publish image
-        uses: docker/build-push-action@v6
+          persist-credentials: false
+      - name: Read add-on version
+        id: addon
+        run: echo "version=$(yq -r .version debian-desktop/config.yaml)" >> "$GITHUB_OUTPUT"
+      - name: Build and optionally publish Home Assistant image
+        uses: home-assistant/builder/actions/build-image@2026.06.0
         with:
-          context: .
-          platforms: linux/amd64
+          arch: amd64
+          container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          context: ./debian-desktop
+          image: ghcr.io/nhm7/homeassistant-vm-debian
+          image-tags: |
+            ${{ steps.addon.outputs.version }}
+            latest
+          labels: |
+            io.hass.type=addon
+            io.hass.name=Debian Desktop
           push: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
-          tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
-          cache-from: type=gha,scope=debian-desktop
-          cache-to: type=gha,mode=max,scope=debian-desktop
+          version: ${{ steps.addon.outputs.version }}

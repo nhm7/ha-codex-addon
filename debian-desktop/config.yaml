@@ -1,0 +1,28 @@
+name: Debian Desktop
+version: "2.0.0"
+slug: debian_desktop
+description: Full Debian 13 Xfce desktop in the Home Assistant sidebar
+url: https://github.com/nhm7/homeassistant-vm/tree/main/debian-desktop
+arch:
+  - amd64
+boot: manual
+init: false
+ingress: true
+panel_icon: mdi:monitor-dashboard
+panel_title: Debian Desktop
+map:
+  - addon_config:rw
+  - share:rw
+  - media:rw
+options:
+  resolution: 1440x900
+  working_directory: /share
+  startup_script: ""
+  environment: []
+schema:
+  resolution: match(^[0-9]{3,4}x[0-9]{3,4}$)
+  working_directory: str
+  startup_script: str
+  environment:
+    - str
+image: ghcr.io/nhm7/homeassistant-vm-debian
