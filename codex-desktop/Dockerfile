@@ -34,7 +34,7 @@ RUN chmod +x \
 
 WORKDIR /share
 
-LABEL io.hass.version="0.2.1" \
+LABEL io.hass.version="0.2.2" \
       io.hass.type="addon" \
       io.hass.arch="amd64" \
       org.opencontainers.image.title="Codex Desktop Community Add-on" \

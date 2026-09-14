@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2
+
+- Run the desktop launcher through the Bashio interpreter so structured
+  `bashio::log.*` functions are available at runtime.
+- Stop the s6 restart loop caused by the launcher exiting immediately with
+  `bashio::log.info: command not found`.
+
 ## 0.2.1
 
 - Fix image builds on Alpine 3.22 by installing websockify from PyPI instead of

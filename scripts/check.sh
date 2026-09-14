@@ -8,6 +8,9 @@ for script in codex-desktop/rootfs/usr/local/bin/* codex-desktop/rootfs/etc/s6-o
   bash -n "${script}"
 done
 
+test "$(head -n 1 codex-desktop/rootfs/usr/local/bin/codex-desktop)" = '#!/usr/bin/with-contenv bashio'
+grep -q 'bashio::log.info' codex-desktop/rootfs/usr/local/bin/codex-desktop
+
 for required_entry in '^name:' '^version:' '^slug:' '^description:' '^arch:' '^ingress:' '^schema:'; do
   grep -Eq "${required_entry}" codex-desktop/config.yaml || {
     echo "config.yaml does not contain ${required_entry}" >&2
