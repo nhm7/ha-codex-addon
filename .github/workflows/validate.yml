@@ -1,4 +1,4 @@
-name: Validate add-ons
+name: Validate Debian desktop
 
 on:
   push:
@@ -24,30 +24,23 @@ jobs:
           file_or_dir: .
 
   build:
-    name: Build ${{ matrix.addon }}
+    name: Build Debian desktop
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        addon:
-          - ubuntu-desktop
-          - debian-desktop
-          - alpine-desktop
     steps:
       - uses: actions/checkout@v4
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.5.0
         with:
-          dockerfile: ${{ matrix.addon }}/Dockerfile
-          # Distribution packages intentionally track each pinned base image.
-          ignore: DL3008,DL3018
+          dockerfile: Dockerfile
+          # Distribution packages intentionally track the pinned Debian base.
+          ignore: DL3008
       - uses: docker/setup-buildx-action@v3
       - name: Build image
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.addon }}
+          context: .
           push: false
           platforms: linux/amd64
-          tags: local/${{ matrix.addon }}:validation
-          cache-from: type=gha,scope=${{ matrix.addon }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.addon }}
+          tags: local/debian-desktop:validation
+          cache-from: type=gha,scope=debian-desktop
+          cache-to: type=gha,mode=max,scope=debian-desktop
