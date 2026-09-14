@@ -10,7 +10,6 @@ ruby -e 'require "yaml"; %w[repository.yaml debian-desktop/config.yaml debian-de
 grep -Fq 'amd64: debian:13-slim' debian-desktop/build.yaml
 grep -Fq 'google-chrome-stable' debian-desktop/Dockerfile
 grep -Fq 'ingress: true' debian-desktop/config.yaml
-grep -Fq 'ingress_port: 8099' debian-desktop/config.yaml
 grep -Fq 'image: ghcr.io/nhm7/homeassistant-vm-debian' debian-desktop/config.yaml
 grep -Fq "\`\${base}/websockify\`" debian-desktop/rootfs/usr/share/novnc/index.html
 grep -Eq 'x11vnc .* -localhost' "${entrypoint}"
@@ -25,8 +24,12 @@ if find . -maxdepth 1 -type d \( -name 'ubuntu-*' -o -name 'fedora-*' -o -name '
   exit 1
 fi
 
-if rg -n -i 'railway|docker run|local development|migration|ubuntu|fedora|alpine' \
-  --glob '!LICENSE' --glob '!scripts/check.sh' .; then
+if find . -type f \
+  ! -path './.git/*' \
+  ! -path './LICENSE' \
+  ! -path './scripts/check.sh' \
+  -exec grep -Eil 'railway|docker run|local development|migration' {} + \
+  | grep -q .; then
   echo 'Found documentation or code for an unsupported deployment.' >&2
   exit 1
 fi

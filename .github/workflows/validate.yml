@@ -2,7 +2,11 @@ name: Validate Debian Desktop add-on
 
 on:
   push:
+    branches:
+      - main
   pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
