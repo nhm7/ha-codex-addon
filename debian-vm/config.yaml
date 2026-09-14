@@ -1,0 +1,13 @@
+name: Debian VM (Software)
+version: "3.0.0"
+slug: debian_vm
+description: Debian 13 Xfce VM with a fully persistent disk and software emulation
+url: https://github.com/nhm7/homeassistant-desktop-vm/tree/main/debian-vm
+arch:
+  - amd64
+boot: manual
+init: false
+ingress: true
+panel_icon: mdi:monitor-dashboard
+panel_title: Debian VM
+image: ghcr.io/nhm7/homeassistant-vm-debian

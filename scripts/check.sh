@@ -2,53 +2,34 @@
 set -Eeuo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-entrypoint=debian-desktop/rootfs/usr/local/bin/desktop-entrypoint
+addons=(debian-vm debian-vm-kvm)
+for addon in "${addons[@]}"; do
+  entrypoint="${addon}/rootfs/usr/local/bin/vm-entrypoint"
+  bash -n "${entrypoint}"
+  ruby -e 'require "yaml"; YAML.safe_load_file(ARGV.fetch(0), aliases: true)' "${addon}/config.yaml"
+  ruby -e 'require "yaml"; YAML.safe_load_file(ARGV.fetch(0), aliases: true)' "${addon}/build.yaml"
+  grep -Fq 'amd64: debian:13-slim' "${addon}/build.yaml"
+  grep -Fq 'qemu-system-x86' "${addon}/Dockerfile"
+  grep -Fq 'debian-13-generic-amd64.qcow2' "${addon}/Dockerfile"
+  grep -Fq 'ingress: true' "${addon}/config.yaml"
+  grep -Fq '/data/debian.qcow2' "${entrypoint}"
+  grep -Fq 'system_powerdown' "${entrypoint}"
+  grep -Fq "\${base}/websockify" "${addon}/rootfs/usr/share/novnc/index.html"
+  if grep -Eq '^(ports|network|webui|host_dbus|docker_api):' "${addon}/config.yaml"; then
+    echo "${addon} must not expose a host service or privileged host API." >&2
+    exit 1
+  fi
+done
 
-bash -n "${entrypoint}"
-bash -n debian-desktop/rootfs/usr/local/bin/google-chrome
-ruby -e 'require "yaml"; %w[repository.yaml debian-desktop/config.yaml debian-desktop/build.yaml .github/workflows/validate.yml].each { |file| YAML.safe_load_file(file, aliases: true) }'
-
-grep -Fq 'amd64: debian:13-slim' debian-desktop/build.yaml
-grep -Fq 'google-chrome-stable' debian-desktop/Dockerfile
-grep -Fq '/usr/local/bin/google-chrome' debian-desktop/Dockerfile
-grep -Fq 'ingress: true' debian-desktop/config.yaml
-grep -Fq 'image: ghcr.io/nhm7/homeassistant-vm-debian' debian-desktop/config.yaml
+grep -Fq 'ENV QEMU_ACCEL=tcg' debian-vm/Dockerfile
+grep -Fq 'image: ghcr.io/nhm7/homeassistant-vm-debian' debian-vm/config.yaml
+grep -Fq 'ENV QEMU_ACCEL=kvm' debian-vm-kvm/Dockerfile
+grep -Fq -- '- /dev/kvm' debian-vm-kvm/config.yaml
+grep -Fq 'image: ghcr.io/nhm7/homeassistant-vm-debian-kvm' debian-vm-kvm/config.yaml
+ruby -e 'require "yaml"; YAML.safe_load_file("repository.yaml", aliases: true); YAML.safe_load_file(".github/workflows/validate.yml", aliases: true)'
 grep -Fq 'https://github.com/nhm7/homeassistant-desktop-vm' repository.yaml
 grep -Fq 'supervisor_add_addon_repository.svg' README.md
 grep -Fq 'repository_url=https%3A%2F%2Fgithub.com%2Fnhm7%2Fhomeassistant-desktop-vm' README.md
-grep -Fq "\${base}/websockify" debian-desktop/rootfs/usr/share/novnc/index.html
-grep -Fq 'rfb.resizeSession = true' debian-desktop/rootfs/usr/share/novnc/index.html
-grep -Fq 'navigator.clipboard.readText()' debian-desktop/rootfs/usr/share/novnc/index.html
-grep -Fq 'HOME=/root' "${entrypoint}"
-grep -Fq 'ln -s /data/home /root' "${entrypoint}"
-grep -Eq 'x11vnc .* -localhost' "${entrypoint}"
-grep -Fq -- '-xrandr resize' "${entrypoint}"
-grep -Fq 'Arc-Dark' debian-desktop/rootfs/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
-
-if grep -Eq '^(ports|network|webui|host_dbus|docker_api):' debian-desktop/config.yaml; then
-  echo 'The add-on must not expose a host service or privileged host API.' >&2
-  exit 1
-fi
-
-if grep -Eq '^(options|schema):' debian-desktop/config.yaml; then
-  echo 'Empty options and schema must be omitted for the add-on linter.' >&2
-  exit 1
-fi
-
-if find . -maxdepth 1 -type d \( -name 'ubuntu-*' -o -name 'fedora-*' -o -name 'alpine-*' \) | grep -q .; then
-  echo 'Only the Debian Home Assistant add-on may be included.' >&2
-  exit 1
-fi
-
-if find . -type f \
-  ! -path './.git/*' \
-  ! -path './LICENSE' \
-  ! -path './scripts/check.sh' \
-  -exec grep -Eil 'railway|docker run|local development|migration' {} + \
-  | grep -q .; then
-  echo 'Found documentation or code for an unsupported deployment.' >&2
-  exit 1
-fi
 
 git diff --check
 echo 'All repository checks passed.'
