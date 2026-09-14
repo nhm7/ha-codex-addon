@@ -18,10 +18,7 @@ trap cleanup EXIT INT TERM
 # documents, and the Xfce profile survive every container restart/recreation.
 mkdir -p "${RUNTIME_DIR}/xdg" /data/home /share /media
 if [[ ! -e /data/home/.initialized ]]; then
-  # Migrate profiles made by 2.0.x, then add any image-provided root defaults
-  # without replacing files the user already owns.
-  [[ ! -d /config/home ]] || cp -a /config/home/. /data/home/
-  cp -an /root/. /data/home/
+  cp -a /root/. /data/home/
   touch /data/home/.initialized
 fi
 if [[ ! -L /root ]]; then

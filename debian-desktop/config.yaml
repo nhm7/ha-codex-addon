@@ -11,7 +11,6 @@ ingress: true
 panel_icon: mdi:monitor-dashboard
 panel_title: Debian Desktop
 map:
-  - addon_config:rw
   - share:rw
   - media:rw
 options: {}
