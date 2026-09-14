@@ -5,17 +5,15 @@ Assistant sidebar. Google Chrome, Thunar, a terminal, and Git are preinstalled.
 
 ## Configuration
 
-- **resolution**: virtual desktop size in `WIDTHxHEIGHT` form.
-- **working_directory**: initial directory for the optional startup script.
-- **startup_script**: shell commands run before the desktop starts.
-- **environment**: optional `NAME=value` entries for the desktop session.
+No configuration is required. The desktop automatically follows the available
+size of the Home Assistant panel without a surrounding noVNC border.
 
-The desktop automatically follows the size of the Home Assistant panel. Use
-the noVNC control bar's **Clipboard** panel to exchange text with the device
-running your browser; browsers require this explicit interaction before a
-remote page can read or write the system clipboard.
+Browser clipboard permissions permitting, Ctrl+C and Ctrl+V exchange text
+directly between the local device and Debian. Browser security policies can
+still require clipboard permission for the Home Assistant page.
 
-The desktop home directory is stored in the add-on configuration volume.
+The standard root home directory, `/root`, is stored on the add-on's persistent
+data volume.
 Home Assistant's `/share` and `/media` directories are also available. Access
 is provided only through authenticated Home Assistant Ingress; no VNC or web
 port is published on the host.
